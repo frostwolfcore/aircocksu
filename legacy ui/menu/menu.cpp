@@ -4,6 +4,7 @@
 
 #include "../config_system.h"
 #include "../config_vars.h"
+#include "../ragebot.hpp"
 
 #include <ShlObj.h>
 #include <algorithm>
@@ -40,7 +41,7 @@ std::vector< std::string > key_strings = { XOR("None"), XOR("M1"), XOR("M2"), XO
   XOR(" "), XOR(" "), XOR(" "), XOR(" "), XOR(" "), XOR(" "), XOR(" "), XOR(" "), XOR(" "), XOR(" "), XOR(" "), XOR(" "), XOR(" "), XOR(" "),
   XOR(" "), XOR(" "), XOR(" "), XOR(" "), XOR(" "), XOR(" "), XOR(" "), XOR(" "), XOR(" "), XOR(" ") };
 
-std::array< std::string, max_tabs > tabs = { XOR("Rage"), XOR("Legit"), XOR("Anti-hit"), XOR("Visuals"), XOR("Misc"), XOR("Skins"), XOR("Configs") };
+std::array< std::string, max_tabs > tabs = { XOR("Ragebot"), XOR("Legitbot"), XOR("Antiaims"), XOR("Visuals"), XOR("Miscellaneous"), XOR("Skinchanger"), XOR("Configs")/*, XOR("Scripts")*/};
 
 void c_menu::create_animation(float& mod, bool cond, float speed_multiplier, unsigned int animation_flags)
 {
@@ -207,7 +208,7 @@ void c_menu::draw_ui_background()
 
 	auto clr = g_cfg.misc.ui_color.base();
 	
-	auto letter = XOR("airflow");
+	auto letter = XOR("airmiss");
 
 	ImGui::PushFont(RENDER->fonts.dmg.get());
 	auto text_size = ImGui::CalcTextSize(letter.c_str());
@@ -431,11 +432,16 @@ void c_menu::draw()
 
 	ImGui::SetColorEditOptions(ImGuiColorEditFlags_PickerHueBar | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoOptions | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_DisplayRGB);
 
+	if (g_cfg.misc.menu && tab_selector == 0)
+	{
+		RAGEBOT->update_tab();
+	}
+
 	//this->draw_snow( );
 	this->window_begin();
 	this->draw_ui_background();
 	this->draw_tabs();
-	this->draw_ui_items();
+	this->draw_ui_items();	
 	this->window_end();
 
 	HACKS->loading_config = false;

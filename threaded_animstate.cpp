@@ -297,9 +297,41 @@ void c_threaded_animstate::setup_velocity(c_animation_state* state, float curtim
 }
 
 void c_threaded_animstate::setup_lean(c_animation_state* state, float curtime) {
-	auto player = reinterpret_cast<c_cs_player*>(state->player);
+	/*auto player = reinterpret_cast<c_cs_player*>(state->player);
 	auto lean = &player->animlayers()[ANIMATION_LAYER_LEAN];
-	lean->weight = lean->cycle = 0.f;
+	lean->weight = lean->cycle = 0.f;*/
+
+	//creds eclipse
+
+	auto player = reinterpret_cast<c_cs_player*>(state->player);
+
+	float flInterval = curtime - *reinterpret_cast<float*>(reinterpret_cast<uintptr_t>(state) + 0x158);
+
+	if (flInterval > 0.025f) {
+		flInterval = std::min(flInterval, 0.1f);
+		*reinterpret_cast<float*>(reinterpret_cast<uintptr_t>(state) + 0x158) = curtime;
+
+		*reinterpret_cast<vec3_t*>(reinterpret_cast<uintptr_t> (state) + 0x168) = (state->velocity - *reinterpret_cast<vec3_t*>(reinterpret_cast<uintptr_t> (state) + 0x15C)) / flInterval;
+		reinterpret_cast<vec3_t*>(reinterpret_cast<uintptr_t> (state) + 0x168)->z = 0.0f;
+
+		*reinterpret_cast<vec3_t*>(reinterpret_cast<uintptr_t> (state) + 0x15C) = state->velocity;
+	}
+
+	*reinterpret_cast<vec3_t*>(reinterpret_cast<uintptr_t> (state) + 0x174) = math::approach(*reinterpret_cast<vec3_t*>(reinterpret_cast<uintptr_t> (state) + 0x168), *reinterpret_cast<vec3_t*>(reinterpret_cast<uintptr_t> (state) + 0x174), state->last_update_time * 800.0f);
+
+	const auto temp = reinterpret_cast<vec3_t*>(reinterpret_cast<uintptr_t> (state) + 0x174)->cross(vec3_t(0.0f, 0.0f, 1.0f));
+
+	*reinterpret_cast<float*>(reinterpret_cast<uintptr_t>(state) + 0x180) = std::clamp((reinterpret_cast<vec3_t*>(reinterpret_cast<uintptr_t> (state) + 0x174)->length() / 260.0f) * state->velocity_normalized.length_2d(), 0.0f, 1.0f);
+	*reinterpret_cast<float*>(reinterpret_cast<uintptr_t>(state) + 0x180) *= (1.0f - *reinterpret_cast<float*>(reinterpret_cast<uintptr_t> (state) + 0x12C));
+
+	player->pose_parameter()[PLAYER_POSE_PARAM_LEAN_YAW] = std::clamp(math::normalize_yaw(state->abs_yaw - temp.y), -180.0f, 180.0f) / 360.0f + 0.5f;
+
+	if (player->animlayers() && player->animlayers()[ANIMATION_LAYER_LEAN].sequence <= 0) {
+		state->set_layer_sequence(&player->animlayers()[ANIMATION_LAYER_LEAN], player->lookup_sequence("lean"));
+	}
+
+	state->set_layer_weight(&player->animlayers()[ANIMATION_LAYER_LEAN], *reinterpret_cast<float*>(reinterpret_cast<uintptr_t>(state) + 0x180));
+
 }
 
 void c_threaded_animstate::setup_aim_matrix(c_animation_state* state, float curtime)
@@ -542,10 +574,10 @@ void c_threaded_animstate::update(c_cs_player* player, c_animation_state* state,
 	for (int i = 0; i < 13; ++i) {
 		auto layer = &player->animlayers()[i];
 		if (layer->sequence == 0) {
-			//if (layer->owner && layer->weight != 0.f) {
-				//if (layer->weight == 0.0f)
-				//	player->invalidate_physics_recursive(16);
-			//}
+			if (layer->owner && layer->weight != 0.f) {
+				if (layer->weight == 0.0f)
+					player->invalidate_physics_recursive(16);
+			}
 
 			layer->weight = 0.f;
 		}

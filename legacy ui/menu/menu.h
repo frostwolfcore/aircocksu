@@ -148,11 +148,11 @@ public:
 	spectator_t spectators[50]{};
 
 #if ALPHA
-	std::string prefix = XOR("airflow (alpha)");
+	std::string prefix = XOR("airmiss (alpha)");
 #elif BETA
-	std::string prefix = XOR("airflow (beta)");
+	std::string prefix = XOR("airmiss (beta)");
 #else
-	std::string prefix = XOR("airflow");
+	std::string prefix = XOR("airmiss");
 #endif
 
 	void set_draw_list(ImDrawList* list);

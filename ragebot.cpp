@@ -136,6 +136,107 @@ float get_point_accuracy(rage_player_t* rage, vec3_t& eye_pos, const rage_point_
 	return (float)hits / 48.f;
 }
 
+void c_ragebot::update_tab()
+{
+	if (!HACKS->weapon || !HACKS->weapon_info)
+		return;
+
+	auto weapon_index = HACKS->weapon->item_definition_index();
+
+	if (!weapon_index)
+		return;
+
+	
+
+	switch (weapon_index)
+	{
+	case WEAPON_DEAGLE:
+	case WEAPON_REVOLVER:
+	{
+		g_cfg.rage.group_type = 2;
+		break;
+	}
+
+	
+	case WEAPON_GLOCK:
+	case WEAPON_USP_SILENCER:
+	case WEAPON_TEC9:
+	{
+		g_cfg.rage.group_type = 3;
+		break;
+	}
+
+	case WEAPON_CZ75A:
+	case WEAPON_FIVESEVEN:
+	{
+		g_cfg.rage.group_type = 12;
+		break;
+	}
+
+	case WEAPON_P250:
+	{
+		g_cfg.rage.group_type = 11;
+		break;
+	}
+
+	//{
+		//g_cfg.rage.group_type = 10;
+		//break;
+	//}
+
+	case WEAPON_SSG08:
+	{
+		g_cfg.rage.group_type = 4;
+		break;
+	}
+
+	case WEAPON_AWP:
+	{
+		g_cfg.rage.group_type = 5;
+		break;
+	}
+
+	case WEAPON_G3SG1:
+	case WEAPON_SCAR20:
+	{
+		g_cfg.rage.group_type = 1;
+		break;
+	}
+
+	case WEAPON_NEGEV: // 6
+	{
+		g_cfg.rage.group_type = 6;
+		break;
+	}
+	case WEAPON_M249:  // 7
+	{
+		g_cfg.rage.group_type = 7;
+		break;
+	}
+
+	case WEAPON_AK47:
+	case WEAPON_M4A1_SILENCER:
+	case WEAPON_M4A1:
+	{
+		g_cfg.rage.group_type = 8;
+		break;
+	}
+
+	case WEAPON_AUG:
+	case WEAPON_SG556:
+	{
+		g_cfg.rage.group_type = 9;
+		break;
+	}
+	default:
+	{
+		g_cfg.rage.group_type = 0;
+		break;
+	}
+	}
+}
+
+
 bool c_ragebot::can_fire(bool ignore_revolver)
 {
 	if (!HACKS->local || !HACKS->weapon)

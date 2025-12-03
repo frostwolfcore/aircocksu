@@ -258,6 +258,9 @@ static INLINE void update_sides(bool should_update, c_cs_player* player, anims_t
 		// so we should set latest data as soon as possible
 		state->primary_cycle = new_record->layers[ANIMATION_LAYER_MOVEMENT_MOVE].cycle;
 		state->move_weight = new_record->layers[ANIMATION_LAYER_MOVEMENT_MOVE].weight;
+		state->strafe_change_cycle = new_record->layers[ANIMATION_LAYER_MOVEMENT_STRAFECHANGE].cycle;
+		state->strafe_change_weight = new_record->layers[ANIMATION_LAYER_MOVEMENT_STRAFECHANGE].weight;
+		state->strafe_sequence = new_record->layers[ANIMATION_LAYER_MOVEMENT_STRAFECHANGE].sequence;
 
 		// fixes goalfeetyaw on spawn
 		state->last_update_time = (new_record->sim_time - HACKS->global_vars->interval_per_tick);
@@ -283,6 +286,9 @@ static INLINE void update_sides(bool should_update, c_cs_player* player, anims_t
 	{
 		state->primary_cycle = last_record->layers[ANIMATION_LAYER_MOVEMENT_MOVE].cycle;
 		state->move_weight = last_record->layers[ANIMATION_LAYER_MOVEMENT_MOVE].weight;
+		state->strafe_change_cycle = last_record->layers[ANIMATION_LAYER_MOVEMENT_STRAFECHANGE].cycle;
+		state->strafe_change_weight = last_record->layers[ANIMATION_LAYER_MOVEMENT_STRAFECHANGE].weight;
+		state->strafe_sequence = last_record->layers[ANIMATION_LAYER_MOVEMENT_STRAFECHANGE].sequence;
 	}
 
 	if (should_update)
@@ -832,6 +838,11 @@ void c_animation_fix::handle_strafing(c_animation_state* state, c_user_cmd* cmd)
 	bool strafe_backward = (speed >= 0.65f && move_backward && !move_forward && vel_to_foward_dot > 0.55f);
 
 	HACKS->local->strafing() = (strafe_right || strafe_left || strafe_forward || strafe_backward);
+}
+
+void c_animation_fix::fix_leg_movement()
+{
+
 }
 
 void c_animation_fix::update_local()
