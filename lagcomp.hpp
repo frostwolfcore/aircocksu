@@ -55,9 +55,9 @@ class c_lag_comp
 private:
 
 public:
-	INLINE bool is_tick_valid(bool shifting, bool break_lc, float sim_time)
+	INLINE bool is_tick_valid(bool break_lc, float sim_time)
 	{
-		if (shifting || break_lc)
+		if (break_lc)
 			return false;
 
 		auto netchan = HACKS->engine->get_net_channel();
