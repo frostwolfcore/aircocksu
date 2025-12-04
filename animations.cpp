@@ -729,7 +729,7 @@ vec3_t c_animation_fix::get_eye_position(float angle)
 	float normalized_pitch = angle;
 
 	if (normalized_pitch > 180.f)
-		normalized_pitch = normalized_pitch - 360.f;
+		normalized_pitch -= 360.f;
 
 	normalized_pitch = std::clamp(normalized_pitch, -90.f, 90.f);
 	normalized_pitch = HACKS->local->studio_set_pose_parameter(pose_param_body_pitch, normalized_pitch, pose);
