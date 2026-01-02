@@ -109,6 +109,9 @@ void c_hacks::init(LPVOID reserved)
 	DEBUG_LOG(" [+] Update screen size \n");
 	RENDER->update_screen();
 
+	DEBUG_LOG(" [+] Init Steam SDK \n");
+	g_steam_sdk.initialize_local();
+
 	DEBUG_LOG(" [+] Reset GUI & Binds \n");
 	g_menu.reset_init();
 	g_cfg.reset_init();

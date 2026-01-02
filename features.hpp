@@ -37,3 +37,4 @@
 #include "exploits.hpp"
 #include "fake_lag.hpp"
 #include "anti_aim.hpp"
+#include "steam.hpp"

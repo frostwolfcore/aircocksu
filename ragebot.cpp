@@ -136,107 +136,6 @@ float get_point_accuracy(rage_player_t* rage, vec3_t& eye_pos, const rage_point_
 	return (float)hits / 48.f;
 }
 
-void c_ragebot::update_tab()
-{
-	if (!HACKS->weapon || !HACKS->weapon_info)
-		return;
-
-	auto weapon_index = HACKS->weapon->item_definition_index();
-
-	if (!weapon_index)
-		return;
-
-	
-
-	switch (weapon_index)
-	{
-	case WEAPON_DEAGLE:
-	case WEAPON_REVOLVER:
-	{
-		g_cfg.rage.group_type = 2;
-		break;
-	}
-
-	
-	case WEAPON_GLOCK:
-	case WEAPON_USP_SILENCER:
-	case WEAPON_TEC9:
-	{
-		g_cfg.rage.group_type = 3;
-		break;
-	}
-
-	case WEAPON_CZ75A:
-	case WEAPON_FIVESEVEN:
-	{
-		g_cfg.rage.group_type = 12;
-		break;
-	}
-
-	case WEAPON_P250:
-	{
-		g_cfg.rage.group_type = 11;
-		break;
-	}
-
-	//{
-		//g_cfg.rage.group_type = 10;
-		//break;
-	//}
-
-	case WEAPON_SSG08:
-	{
-		g_cfg.rage.group_type = 4;
-		break;
-	}
-
-	case WEAPON_AWP:
-	{
-		g_cfg.rage.group_type = 5;
-		break;
-	}
-
-	case WEAPON_G3SG1:
-	case WEAPON_SCAR20:
-	{
-		g_cfg.rage.group_type = 1;
-		break;
-	}
-
-	case WEAPON_NEGEV: // 6
-	{
-		g_cfg.rage.group_type = 6;
-		break;
-	}
-	case WEAPON_M249:  // 7
-	{
-		g_cfg.rage.group_type = 7;
-		break;
-	}
-
-	case WEAPON_AK47:
-	case WEAPON_M4A1_SILENCER:
-	case WEAPON_M4A1:
-	{
-		g_cfg.rage.group_type = 8;
-		break;
-	}
-
-	case WEAPON_AUG:
-	case WEAPON_SG556:
-	{
-		g_cfg.rage.group_type = 9;
-		break;
-	}
-	default:
-	{
-		g_cfg.rage.group_type = 0;
-		break;
-	}
-	}
-}
-
-
 bool c_ragebot::can_fire(bool ignore_revolver)
 {
 	if (!HACKS->local || !HACKS->weapon)
@@ -678,6 +577,15 @@ std::vector<rage_point_t> get_hitbox_points(int damage, std::vector<int>& hitbox
 
 	auto local_anims = ANIMFIX->get_local_anims();
 	auto& start_eye_pos = predicted ? predicted_eye_pos : local_anims->eye_pos;
+
+	float backup_pose;
+
+	backup_pose = HACKS->local->pose_parameter()[12];
+
+	HACKS->local->pose_parameter()[12] = (local_anims->eye_pos.x + 90.f) / 180.f;
+	const auto ret = HACKS->local->setup_bones(HACKS->local->bone_cache().base(), BONE_USED_BY_HITBOX, nullptr ? -1 : 128, HACKS->global_vars->curtime);
+
+	HACKS->local->pose_parameter()[12] = backup_pose;
 	
 	int wrong_damage_counter = 0;
 	for (auto& hitbox : hitboxes)
@@ -730,6 +638,162 @@ std::vector<rage_point_t> get_hitbox_points(int damage, std::vector<int>& hitbox
 	return out;
 }
 
+void player_move(c_cs_player* player, anim_record_t* record)
+{
+	static auto sv_gravity = HACKS->convars.sv_gravity;
+	static auto sv_jump_impulse = HACKS->convars.sv_jump_impulse;
+
+	auto src = record->prediction.origin;
+	auto end = src + record->prediction.velocity * HACKS->global_vars->interval_per_tick;
+
+	c_game_trace t;
+	c_trace_filter filter;
+	filter.skip = player;
+
+	HACKS->engine_trace->trace_ray(ray_t(src, end, record->mins, record->maxs), MASK_PLAYERSOLID, &filter, &t);
+
+	if (t.fraction != 1.f)
+	{
+		for (auto i = 0; i < 2; i++)
+		{
+			record->prediction.velocity -= t.plane.normal * record->prediction.velocity.dot(t.plane.normal);
+
+			const auto dot = record->prediction.velocity.dot(t.plane.normal);
+			if (dot < 0.f)
+				record->prediction.velocity -= vec3_t{ dot* t.plane.normal.x, dot* t.plane.normal.y, dot* t.plane.normal.z };
+
+			end = t.end + record->prediction.velocity * TICKS_TO_TIME(1.f - t.fraction);
+ 
+			HACKS->engine_trace->trace_ray(ray_t(t.end, end, record->mins, record->maxs), MASK_PLAYERSOLID, &filter, &t);
+
+			if (t.fraction == 1.f)
+				break;
+		}
+	}
+
+	src = end = record->prediction.origin = t.end;
+	end.z -= 2.f;
+
+	HACKS->engine_trace->trace_ray(ray_t(record->prediction.origin, end, record->mins, record->maxs), MASK_PLAYERSOLID, &filter, &t);
+
+	record->prediction.flags.remove(FL_ONGROUND);
+
+	if (t.fraction != 1.f && t.plane.normal.z > 0.7f)
+		record->prediction.flags.force(FL_ONGROUND);
+}
+
+bool start_fakelag_fix(c_cs_player* player, anims_t* anims)
+{
+	if (anims->records.empty())
+		return false;
+
+	if (player->dormant())
+		return false;
+
+	size_t size{};
+	for (const auto& it : anims->records)
+	{
+		if (it.dormant)
+			break;
+
+		++size;
+	}
+
+	auto record = &anims->records.front();
+	record->extrapolated = false;
+	record->predict();
+
+	if (record->choke <= 0)
+		return false;
+
+	if (size > 1 && ((record->origin - anims->records[1].origin).length_sqr() > 4096.f
+		|| size > 2 && (anims->records[1].origin - anims->records[2].origin).length_sqr() > 4096.f))
+		record->break_lc = true;
+
+	if (!record->break_lc)
+		return false;
+
+	int simulation = TIME_TO_TICKS(record->sim_time);
+	if (std::abs(HACKS->arrival_tick - simulation) >= 128)
+		return false;
+
+	int lag = record->choke;
+
+	int updatedelta = HACKS->client_state->clock_drift_mgr.server_tick - record->server_tick_estimation;
+	if (TIME_TO_TICKS(HACKS->outgoing) <= lag - updatedelta)
+		return false;
+
+	int next = record->server_tick_estimation + 1;
+	if (next + lag >= HACKS->arrival_tick)
+		return false;
+
+	auto latency = std::clamp(TICKS_TO_TIME(HACKS->ping), 0.0f, 1.0f);
+	auto correct = std::clamp(latency + HACKS->lerp_time, 0.0f, HACKS->convars.sv_maxunlag->get_float());
+	auto delta_time = correct - (TICKS_TO_TIME(HACKS->tickbase) - record->sim_time);
+	auto predicted_tick = ((int)HACKS->client_state->clock_drift_mgr.server_tick + TIME_TO_TICKS(latency) - record->server_tick_estimation) / record->choke;
+
+	if (predicted_tick > 0 && predicted_tick < 20)
+	{
+		auto max_backtrack_time = std::ceil(((delta_time - 0.2f) / HACKS->global_vars->interval_per_tick + 0.5f) / (float)record->choke);
+		auto prediction_ticks = predicted_tick;
+
+		if (max_backtrack_time > 0.0f && predicted_tick >= TIME_TO_TICKS(max_backtrack_time))
+			prediction_ticks = TIME_TO_TICKS(max_backtrack_time);
+
+		if (prediction_ticks > 0)
+		{
+			record->extrapolate_ticks = prediction_ticks;
+
+			do
+			{
+				for (auto current_prediction_tick = 0; current_prediction_tick < record->choke; ++current_prediction_tick)
+				{
+					if (record->prediction.flags.has(FL_ONGROUND))
+					{
+						if (!HACKS->convars.sv_enablebunnyhopping->get_int())
+						{
+							float max = player->max_speed() * 1.1f;
+							float speed = record->prediction.velocity.length();
+							if (max > 0.f && speed > max)
+								record->prediction.velocity *= (max / speed);
+						}
+
+						record->prediction.velocity.z = HACKS->convars.sv_jump_impulse->get_float();
+					}
+					else
+						record->prediction.velocity.z -= HACKS->convars.sv_gravity->get_float() * HACKS->global_vars->interval_per_tick;
+
+					player_move(player, record);
+					record->prediction.time += HACKS->global_vars->interval_per_tick;
+				}
+
+				--prediction_ticks;
+			} while (prediction_ticks);
+
+			auto current_origin = record->prediction.origin;
+
+			clamp_bones_info_t info{};
+			info.collision_change_origin = record->collision_change_origin;
+			info.collision_change_time = record->collision_change_time;
+			info.origin = current_origin;
+			info.collision_origin = current_origin;
+			info.ground_entity = record->prediction.flags.has(FL_ONGROUND) ? 1 : -1;
+			info.view_offset = record->view_offset;
+
+			math::change_bones_position(record->matrix_orig.matrix, 128, record->origin, current_origin);
+			math::memcpy_sse(record->predicted_matrix, record->matrix_orig.matrix, sizeof(record->matrix_orig.matrix));
+			record->matrix_orig.bone_builder.clamp_bones_in_bbox(player, record->predicted_matrix, 0x7FF00, record->prediction.time, player->eye_angles(), info);
+
+			math::change_bones_position(record->matrix_orig.matrix, 128, current_origin, record->origin);
+			record->extrapolated = true;
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void pre_cache_centers(int damage, std::vector<int>& hitboxes, vec3_t& predicted_eye_pos, rage_player_t* rage)
 {
 	rage->reset_hitscan();
@@ -740,83 +804,85 @@ void pre_cache_centers(int damage, std::vector<int>& hitboxes, vec3_t& predicted
 		return;
 
 	auto get_overall_damage = [&](anim_record_t* record)
+	{
+		rage->points_to_scan.clear();
+		rage->points_to_scan.reserve(MAX_SCANNED_POINTS);
+
+		auto predicted_hitbox_points = get_hitbox_points(damage, hitboxes, predicted_eye_pos, predicted_eye_pos, rage, record, true);
+		if (predicted_hitbox_points.empty())
 		{
-			rage->points_to_scan.clear();
-			rage->points_to_scan.reserve(MAX_SCANNED_POINTS);
+			auto hitbox_points = get_hitbox_points(damage, hitboxes, anim->eye_pos, predicted_eye_pos, rage, record, true);
 
-			auto predicted_hitbox_points = get_hitbox_points(damage, hitboxes, predicted_eye_pos, predicted_eye_pos, rage, record, true);
-			if (predicted_hitbox_points.empty())
+			int overall_damage = 0;
+			for (auto& point : hitbox_points)
 			{
-				auto hitbox_points = get_hitbox_points(damage, hitboxes, anim->eye_pos, predicted_eye_pos, rage, record, true);
-
-				int overall_damage = 0;
-				for (auto& point : hitbox_points)
-				{
-					rage->points_to_scan.emplace_back(point);
-					overall_damage += point.damage;
-				}
-
-				return overall_damage;
+				rage->points_to_scan.emplace_back(point);
+				overall_damage += point.damage;
 			}
-			else
+
+			return overall_damage;
+		}
+		else
+		{
+			int overall_damage = 0;
+			for (auto& point : predicted_hitbox_points)
 			{
-				int overall_damage = 0;
-				for (auto& point : predicted_hitbox_points)
-				{
-					rage->points_to_scan.emplace_back(point);
-					overall_damage += point.damage;
-				}
-
-				return overall_damage;
+				rage->points_to_scan.emplace_back(point);
+				overall_damage += point.damage;
 			}
-		};
+
+			return overall_damage;
+		}
+	};
 
 	rage->restore.store(rage->player);
 
 	anim_record_t* best = nullptr;
-
-	auto first_find = std::find_if(lagcomp->records.begin(), lagcomp->records.end(), [&](anim_record_t& record)
-		{
-			return LAGCOMP->is_tick_valid(record.break_lc, record.sim_time);
-		});
-
-	anim_record_t* first = nullptr;
-	if (first_find != lagcomp->records.end())
-		first = &*first_find;
-
-	auto last_find = std::find_if(lagcomp->records.rbegin(), lagcomp->records.rend(), [&](anim_record_t& record)
-		{
-			return LAGCOMP->is_tick_valid(record.break_lc, record.sim_time);
-		});
-
-	anim_record_t* last = nullptr;
-	if (last_find != lagcomp->records.rend())
-		last = &*last_find;
-
-	bool oldest_valid{};
-
-	if (last)
+	if (start_fakelag_fix(rage->player, lagcomp))
 	{
-		if (last && get_overall_damage(last) >= damage)
-		{
-			rage->start_scans = true;
-			rage->hitscan_record = last;
-		}
+		auto record = &lagcomp->records.front();
+		auto record_dmg = get_overall_damage(record);
+		best = record;
+	}
+	else
+	{
+		auto first_find = std::find_if(lagcomp->records.begin(), lagcomp->records.end(), [&](anim_record_t& record) {
+			return record.valid_lc;
+			});
+
+		anim_record_t* first = nullptr;
+		if (first_find != lagcomp->records.end())
+			first = &*first_find;
+
+		auto last_find = std::find_if(lagcomp->records.rbegin(), lagcomp->records.rend(), [&](anim_record_t& record) {
+			return record.valid_lc;
+			});
+
+		anim_record_t* last = nullptr;
+		if (last_find != lagcomp->records.rend())
+			last = &*last_find;
 
 		if (last)
-			oldest_valid = true;
-	}
-
-	if (!oldest_valid && first)
-	{
-		if (first && get_overall_damage(first) >= damage)
 		{
-			rage->start_scans = true;
-			rage->hitscan_record = first;
+			auto last_dmg = get_overall_damage(last);
+			auto first_dmg = get_overall_damage(first);
+
+			if (last_dmg > first_dmg)
+				best = last;
+			else
+				best = first;
 		}
+		else
+			best = first;
 	}
 
 	rage->restore.restore(rage->player);
+
+	if (best)
+	{
+		rage->start_scans = true;
+		rage->hitscan_record = best;
+	}
 }
 
 void get_result(bool& out, const vec3_t& start, const vec3_t& end, rage_player_t* rage, int hitbox, matrix3x4_t* matrix, anim_record_t* record)
@@ -824,86 +890,67 @@ void get_result(bool& out, const vec3_t& start, const vec3_t& end, rage_player_t
 	out = can_hit_hitbox(start, end, rage, hitbox, matrix, record);
 }
 
-//https://hackvshack.net/threads/a-method-based-on-geometry-to-calc-hitchance.6745/
 bool hitchance(vec3_t eye_pos, rage_player_t& rage, const rage_point_t& point, anim_record_t* record, const float& chance, matrix3x4_t* matrix, float* hitchance_out = nullptr)
 {
 	static auto weapon_accuracy_nospread = HACKS->convars.weapon_accuracy_nospread;
-
 	if (weapon_accuracy_nospread && weapon_accuracy_nospread->get_bool())
-	{
-		if (hitchance_out) *hitchance_out = 1.f;
 		return true;
-	}
 
-	auto net_vars = ENGINE_PREDICTION->get_networked_vars(HACKS->cmd->command_number);
-	float inaccuracy = net_vars->inaccuracy + net_vars->spread;
-
-	if ((HACKS->ideal_inaccuracy + 0.0005f) >= net_vars->inaccuracy)
-	{
-		if (hitchance_out) *hitchance_out = 1.f;
+#ifdef LEGACY
+	if (EXPLOITS->enabled() && EXPLOITS->dt_bullet == 1)
 		return true;
-	}
+#endif
+
+	auto current = 0;
+	auto networked_vars = ENGINE_PREDICTION->get_networked_vars(HACKS->cmd->command_number);
 
 	auto matrix_to_aim = record->extrapolated ? record->predicted_matrix : record->matrix_orig.matrix;
-	auto active_matrix = matrix ? matrix : matrix_to_aim;
 
-	rage.restore.store(rage.player);
-	LAGCOMP->set_record(rage.player, record, active_matrix);
+	auto current_bones = matrix ? matrix : matrix_to_aim;
+	auto anim = ANIMFIX->get_local_anims();
 
-	vec3_t aim_dir = (point.aim_point - eye_pos).normalized();
-	float dist = eye_pos.dist_to(point.aim_point);
-	float spread_r = dist * inaccuracy;
-
-	float tgt_r = 0.f;
-	vec3_t tgt_center{};
-
-	if (auto hdr = HACKS->model_info->get_studio_model(rage.player->get_model()))
-	{
-		if (auto set = hdr->hitbox_set(0))
-		{
-			if (auto box = set->hitbox(point.hitbox))
-			{
-				vec3_t mn, mx;
-				math::vector_transform(box->min, active_matrix[box->bone], mn);
-				math::vector_transform(box->max, active_matrix[box->bone], mx);
-				tgt_center = (mn + mx) * 0.5f;
-				tgt_r = box->radius > 0.f ? box->radius : (mx - mn).length() * 0.5f;
-			}
-		}
+	if ((HACKS->ideal_inaccuracy + 0.0005f) >= networked_vars->inaccuracy) {
+		*hitchance_out = 1.f;
+		return true;
 	}
 
-	vec3_t diff = tgt_center - point.aim_point;
-	float d = (diff - aim_dir * diff.dot(aim_dir)).length();
+	rage.restore.store(rage.player);
+	LAGCOMP->set_record(rage.player, record, current_bones);
 
-	// Geometric analysis
-	auto overlap_ratio = [&](float r1, float r2, float sep) -> float
-		{
-			if (r1 <= 0.f)
-				return 0.f;
+	auto start = eye_pos;
+	auto aim_angle = math::calc_angle(start, point.aim_point);
 
-			if (sep >= r1 + r2)
-				return 0.f;
+	vec3_t forward, right, up;
+	math::angle_vectors(aim_angle, &forward, &right, &up);
 
-			if (sep <= std::fabs(r1 - r2))
-				return r2 <= r1 ? (r2 * r2) / (r1 * r1) : 1.f;
+	vec3_t total_spread, spread_angle, end;
+	float inaccuracy, spread_x, spread_y;
+	std::tuple<float, float, float>* seed{};
 
-			float r1sq = r1 * r1, r2sq = r2 * r2;
-			float alpha = std::acos((sep * sep + r1sq - r2sq) / (2.f * sep * r1));
-			float beta = std::acos((sep * sep + r2sq - r1sq) / (2.f * sep * r2));
-			float part = -sep + r1 + r2;
-			float area = r1sq * alpha + r2sq * beta - 0.5f * std::sqrt(part * (sep + r1 - r2) * (sep - r1 + r2) * (sep + r1 + r2));
+	for (auto i = 0; i < MAX_SEEDS; i++)
+	{
+		seed = &precomputed_seeds[i];
 
-			return area / (M_PI * r1sq);
-		};
+		inaccuracy = std::get<0>(*seed) * networked_vars->inaccuracy;
+		spread_x = std::get<2>(*seed) * inaccuracy;
+		spread_y = std::get<1>(*seed) * inaccuracy;
+		total_spread = (forward + right * spread_x + up * spread_y).normalized();
 
-	float probability = overlap_ratio(spread_r, tgt_r, d);
+		math::vector_angles(total_spread, spread_angle);
 
-	if (hitchance_out)
-		*hitchance_out = std::clamp(probability, 0.f, 1.f);
+		math::angle_vectors(spread_angle, end);
+		end = start + end.normalized() * HACKS->weapon_info->range;
+
+		if (can_hit_hitbox(start, end, &rage, point.hitbox, current_bones, record))
+			current++;
+
+		if (hitchance_out)
+			*hitchance_out = (float)current / (float)MAX_SEEDS;
+	}
 
 	rage.restore.restore(rage.player);
 
-	return probability >= chance;
+	return ((float)current / (float)MAX_SEEDS) >= chance;
 }
 
 void collect_damage_from_multipoints(int damage, vec3_t& predicted_eye_pos, rage_player_t* rage, rage_point_t& points, anim_record_t* record, matrix3x4_t* matrix_to_aim, bool predicted)
@@ -1063,7 +1110,7 @@ void c_ragebot::scan_players()
 void c_ragebot::choose_best_point()
 {
 	auto prefer_baim_on_dt = EXPLOITS->enabled() && EXPLOITS->get_exploit_mode() == EXPLOITS_DT
-		&& (HACKS->weapon->is_auto_sniper() || HACKS->weapon->is_heavy_pistols());
+		&& (HACKS->weapon->is_auto_sniper() || HACKS->weapon->is_heavy_pistols() || HACKS->weapon->active_weapon() == WEAPON_AWP);
 
 	LISTENER_ENTITY->for_each_player([&](c_cs_player* player)
 	{
@@ -1148,7 +1195,8 @@ void c_ragebot::auto_revolver()
 	}
 
 	auto time = TICKS_TO_TIME(HACKS->tickbase - EXPLOITS->tickbase_offset());
-	const auto max_ticks = TIME_TO_TICKS(.25f) - 1;
+	//const auto max_ticks = TIME_TO_TICKS(.25f) - 1;
+	const auto max_ticks = TIME_TO_TICKS(0.234375f);
 	const auto tick_base = TIME_TO_TICKS(time);
 
 	if (HACKS->local->next_attack() > time)

@@ -229,7 +229,7 @@ void fix_velocity(anim_record_t* old_record, anim_record_t* last_record, anim_re
 	}
 }
 
-INLINE matrix_t* c_animation_fix::get_matrix_side(anim_record_t* new_record, int side)
+INLINE matrix_t* get_matrix_side(anim_record_t* new_record, int side)
 {
 #ifndef LEGACY
 	switch (side)
@@ -258,9 +258,6 @@ static INLINE void update_sides(bool should_update, c_cs_player* player, anims_t
 		// so we should set latest data as soon as possible
 		state->primary_cycle = new_record->layers[ANIMATION_LAYER_MOVEMENT_MOVE].cycle;
 		state->move_weight = new_record->layers[ANIMATION_LAYER_MOVEMENT_MOVE].weight;
-		state->strafe_change_cycle = new_record->layers[ANIMATION_LAYER_MOVEMENT_STRAFECHANGE].cycle;
-		state->strafe_change_weight = new_record->layers[ANIMATION_LAYER_MOVEMENT_STRAFECHANGE].weight;
-		state->strafe_sequence = new_record->layers[ANIMATION_LAYER_MOVEMENT_STRAFECHANGE].sequence;
 
 		// fixes goalfeetyaw on spawn
 		state->last_update_time = (new_record->sim_time - HACKS->global_vars->interval_per_tick);
@@ -286,9 +283,6 @@ static INLINE void update_sides(bool should_update, c_cs_player* player, anims_t
 	{
 		state->primary_cycle = last_record->layers[ANIMATION_LAYER_MOVEMENT_MOVE].cycle;
 		state->move_weight = last_record->layers[ANIMATION_LAYER_MOVEMENT_MOVE].weight;
-		state->strafe_change_cycle = last_record->layers[ANIMATION_LAYER_MOVEMENT_STRAFECHANGE].cycle;
-		state->strafe_change_weight = last_record->layers[ANIMATION_LAYER_MOVEMENT_STRAFECHANGE].weight;
-		state->strafe_sequence = last_record->layers[ANIMATION_LAYER_MOVEMENT_STRAFECHANGE].sequence;
 	}
 
 	if (should_update)
@@ -493,7 +487,7 @@ static INLINE void update_sides(bool should_update, c_cs_player* player, anims_t
 
 		anim->setup_bones = false;
 
-		auto matrix_side = ANIMFIX->get_matrix_side(new_record, side);
+		auto matrix_side = get_matrix_side(new_record, side);
 
 		// store simulated layers
 		player->store_layers(matrix_side->layers);
@@ -665,16 +659,10 @@ void thread_collect_info(c_cs_player* player)
 				if (anim->last_valid_time > new_record.sim_time)
 					new_record.shifting = true;
 			}
-			if (new_record.old_sim_time > new_record.sim_time) 
-				new_record.break_lc = true;
-			
 		}
 	}
 	else
-	{
 		new_record.shifting = false;
-		new_record.break_lc = false;
-	}
 
 	backup->restore(player);
 
@@ -844,11 +832,6 @@ void c_animation_fix::handle_strafing(c_animation_state* state, c_user_cmd* cmd)
 	bool strafe_backward = (speed >= 0.65f && move_backward && !move_forward && vel_to_foward_dot > 0.55f);
 
 	HACKS->local->strafing() = (strafe_right || strafe_left || strafe_forward || strafe_backward);
-}
-
-void c_animation_fix::fix_leg_movement()
-{
-
 }
 
 void c_animation_fix::update_local()

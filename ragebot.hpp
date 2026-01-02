@@ -298,7 +298,6 @@ public:
 	}
 
 	multipoints_t get_points(c_cs_player* player, int hitbox, matrix3x4_t* matrix);
-	void update_tab();
 	bool can_fire(bool ignore_revolver = false);
 	bool is_shooting();
 	void run_stop();

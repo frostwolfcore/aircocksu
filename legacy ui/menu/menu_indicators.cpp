@@ -634,7 +634,7 @@ void c_menu::draw_watermark()
 	ImVec2 text_size{};
 	ImGui::PushFont(RENDER->fonts.main.get());
 	{
-		current_username = HACKS->cheat_info.user_name = " empty ";
+		current_username = HACKS->cheat_info.user_name;
 		auto watermark_string = tfm::format(CXOR("%s %s"), this->prefix, tfm::format(CXOR("%s | %s  %s"), current_username, cur_time, ping));
 
 		text_size = ImGui::CalcTextSize(watermark_string.c_str());

@@ -3,7 +3,6 @@
 #include "movement.hpp"
 #include "game_movement.hpp"
 #include "fake_lag.hpp"
-#include "lagcomp.hpp"
 #include "penetration.hpp"
 #include "engine_prediction.hpp"
 #include "animations.hpp"
@@ -597,7 +596,7 @@ bool c_anti_aim::is_peeking()
 		if (!anims->records.empty())
 		{
 			auto first_find = std::find_if(anims->records.begin(), anims->records.end(), [&](anim_record_t& record) {
-				return LAGCOMP->is_tick_valid(record.break_lc, record.sim_time);
+				return record.valid_lc;
 				});
 
 			anim_record_t* first = nullptr;

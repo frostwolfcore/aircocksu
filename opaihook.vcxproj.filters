@@ -246,6 +246,9 @@
     <ClCompile Include="legacy ui\legacy_str.cpp">
       <Filter>legacy ui</Filter>
     </ClCompile>
+    <ClCompile Include="steam.cpp">
+      <Filter>sdk</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="globals.hpp" />
@@ -508,6 +511,87 @@
     <ClInclude Include="imgui\shader_blur_y.h">
       <Filter>imgui</Filter>
     </ClInclude>
+    <ClInclude Include="isteamapplist.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteamapps.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteamappticket.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteamclient.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteamcontroller.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteamfriends.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteamgamecoordinator.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteamgameserver.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteamgameserverstats.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteamhtmlsurface.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteamhttp.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteaminventory.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteammasterserverupdater.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteammusic.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteammatchmaking.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteamnetworking.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteammusicremote.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteamparentalsettings.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteamps3overlayrenderer.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteamremotestorage.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteamscreenshots.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteamugc.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteamuser.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteamuserstats.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteamutils.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="isteamvideo.h">
+      <Filter>sdk\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="steam.hpp">
+      <Filter>sdk</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="other">
@@ -576,10 +660,14 @@
     <Filter Include="features\ragebot">
       <UniqueIdentifier>{23de7d15-ef64-4fa6-8a65-fbc714f11b44}</UniqueIdentifier>
     </Filter>
+    <Filter Include="sdk\steam">
+      <UniqueIdentifier>{bcfe96b4-a546-4df5-91e4-8d8472099c0b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="world_modulation.hpp">
       <Filter>features\visuals</Filter>
     </None>
+    <None Include="README.md" />
   </ItemGroup>
 </Project>

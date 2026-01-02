@@ -207,7 +207,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>globals.hpp</PrecompiledHeaderFile>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
@@ -427,6 +427,7 @@
     <ClCompile Include="server_bones.cpp" />
     <ClCompile Include="skins.cpp" />
     <ClCompile Include="spoofers.cpp" />
+    <ClCompile Include="steam.cpp" />
     <ClCompile Include="structs.cpp" />
     <ClCompile Include="thirdperson.cpp" />
     <ClCompile Include="threaded_animstate.cpp" />
@@ -484,6 +485,32 @@
     <ClInclude Include="imgui\shader_blur_x.h" />
     <ClInclude Include="imgui\shader_blur_y.h" />
     <ClInclude Include="interfaces.hpp" />
+    <ClInclude Include="isteamapplist.h" />
+    <ClInclude Include="isteamapps.h" />
+    <ClInclude Include="isteamappticket.h" />
+    <ClInclude Include="isteamclient.h" />
+    <ClInclude Include="isteamcontroller.h" />
+    <ClInclude Include="isteamfriends.h" />
+    <ClInclude Include="isteamgamecoordinator.h" />
+    <ClInclude Include="isteamgameserver.h" />
+    <ClInclude Include="isteamgameserverstats.h" />
+    <ClInclude Include="isteamhtmlsurface.h" />
+    <ClInclude Include="isteamhttp.h" />
+    <ClInclude Include="isteaminventory.h" />
+    <ClInclude Include="isteammasterserverupdater.h" />
+    <ClInclude Include="isteammatchmaking.h" />
+    <ClInclude Include="isteammusic.h" />
+    <ClInclude Include="isteammusicremote.h" />
+    <ClInclude Include="isteamnetworking.h" />
+    <ClInclude Include="isteamparentalsettings.h" />
+    <ClInclude Include="isteamps3overlayrenderer.h" />
+    <ClInclude Include="isteamremotestorage.h" />
+    <ClInclude Include="isteamscreenshots.h" />
+    <ClInclude Include="isteamugc.h" />
+    <ClInclude Include="isteamuser.h" />
+    <ClInclude Include="isteamuserstats.h" />
+    <ClInclude Include="isteamutils.h" />
+    <ClInclude Include="isteamvideo.h" />
     <ClInclude Include="Json\json-forwards.h" />
     <ClInclude Include="Json\json.h" />
     <ClInclude Include="key_states.hpp" />
@@ -517,6 +544,7 @@
     <ClInclude Include="server_bones.hpp" />
     <ClInclude Include="skins.hpp" />
     <ClInclude Include="spoofers.hpp" />
+    <ClInclude Include="steam.hpp" />
     <ClInclude Include="structs.hpp" />
     <ClInclude Include="thirdpesron.hpp" />
     <ClInclude Include="threaded_animstate.hpp" />
@@ -528,6 +556,7 @@
     <ClInclude Include="xorstr.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="README.md" />
     <None Include="world_modulation.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

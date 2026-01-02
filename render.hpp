@@ -171,6 +171,12 @@ public:
         draw_list->AddCircleFilled(ImVec2(x1, y1), radius, col.as_imcolor(), segments);
     }
 
+    INLINE void arc(float x, float y, float radius, float min_angle, float max_angle, c_color col, float thickness = 1.f)
+    {
+        draw_list->PathArcTo(ImVec2(x, y), radius, min_angle, max_angle, 32);
+        draw_list->PathStroke(col.as_imcolor(), false, thickness);
+    }
+
     INLINE ImVec2 get_text_size(c_d3dfont* font, const std::string& text)
     {
         const auto& font_base = font->get();

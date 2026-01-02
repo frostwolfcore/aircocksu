@@ -254,6 +254,7 @@ private:
 
 	nade_path_t local_path{};
 
+	void draw_unwind_animation(float x, float y, float radius, c_color color, float progress, float thickness = 2.5f, int segments = 32);
 	void render_offscreen_esp(nade_path_t* info, const float& mod, const float& duration);
 
 public:
