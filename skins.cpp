@@ -1,6 +1,8 @@
 #include "globals.hpp"
 #include "skins.hpp"
 
+using EQUIP_WEARABLE_FN = int(__thiscall*)(void*, void*);
+
 namespace string_convert
 {
 	INLINE std::string to_string(const std::wstring_view str)
@@ -52,6 +54,7 @@ namespace skin_changer
 	const char* default_mask = CXOR("models/player/holiday/facemasks/facemask_battlemask.mdl");
 
 	std::unordered_map<std::string, int> weapon_indexes{};
+	static std::unordered_map <std::string_view, const char*> iconOverrides;
 
 #ifdef LEGACY
 	std::array< std::string, max_knifes - 1 > knife_models{
@@ -565,6 +568,89 @@ namespace skin_changer
 
 		HACKS->local->set_model_index(idx);
 #endif
+	}
+
+	std::string get_weapon_name_token(int weapon_id)
+	{
+		switch (weapon_id)
+		{
+		case WEAPON_DEAGLE: return XOR("deagle");
+		case WEAPON_ELITE: return XOR("elite");
+		case WEAPON_FIVESEVEN: return XOR("fiveseven");
+		case WEAPON_GLOCK: return XOR("glock");
+		case WEAPON_AK47: return XOR("ak47");
+		case WEAPON_AUG: return XOR("aug");
+		case WEAPON_AWP: return XOR("awp");
+		case WEAPON_FAMAS: return XOR("famas");
+		case WEAPON_G3SG1: return XOR("g3sg1");
+		case WEAPON_GALILAR: return XOR("galilar");
+		case WEAPON_M249: return XOR("m249");
+		case WEAPON_M4A1: return XOR("m4a1");
+		case WEAPON_M4A1_SILENCER: return XOR("m4a1_silencer");
+		case WEAPON_MAC10: return XOR("mac10");
+		case WEAPON_P90: return XOR("p90");
+		case WEAPON_MP5SD: return XOR("mp5sd");
+		case WEAPON_UMP45: return XOR("ump45");
+		case WEAPON_XM1014: return XOR("xm1014");
+		case WEAPON_BIZON: return XOR("bizon");
+		case WEAPON_MAG7: return XOR("mag7");
+		case WEAPON_NEGEV: return XOR("negev");
+		case WEAPON_SAWEDOFF: return XOR("sawedoff");
+		case WEAPON_TEC9: return XOR("tec9");
+		case WEAPON_HKP2000: return XOR("hkp2000");
+		case WEAPON_MP7: return XOR("mp7");
+		case WEAPON_MP9: return XOR("mp9");
+		case WEAPON_NOVA: return XOR("nova");
+		case WEAPON_P250: return XOR("p250");
+		case WEAPON_SCAR20: return XOR("scar20");
+		case WEAPON_SG556: return XOR("sg556");
+		case WEAPON_SSG08: return XOR("ssg08");
+		case WEAPON_USP_SILENCER: return XOR("usp_silencer");
+		case WEAPON_CZ75A: return XOR("cz75a");
+		case WEAPON_REVOLVER: return XOR("revolver");
+		default: return "";
+		}
+	}
+
+	bool check_skin_compatibility(int weapon_id, int paint_kit_id)
+	{
+		bool is_glove_skin = (paint_kit_id >= 10000);
+
+		if (weapon_id >= GLOVE_STUDDED_BLOODHOUND && weapon_id <= GLOVE_STUDDED_HYDRA)
+			return is_glove_skin;
+
+		if (is_glove_skin)
+			return false;
+
+		auto* schema = HACKS->item_schema;
+		if (!schema) return true;
+
+		for (int i = 0; i <= schema->paint_kits.last_element; ++i)
+		{
+			const auto& node = schema->paint_kits.memory[i];
+			auto* paint_kit = node._value;
+
+			if (!paint_kit || paint_kit->id != paint_kit_id)
+				continue;
+
+			if (!paint_kit->name.buffer)
+				continue;
+
+			std::string internal_name = paint_kit->name.buffer;
+			std::string weapon_token = get_weapon_name_token(weapon_id);
+
+			if (!weapon_token.empty())
+			{
+				if (internal_name.find(weapon_token) != std::string::npos)
+					return true;
+
+				return false;
+			}
+
+			return true;
+		}
+
+		return true;
 	}
 
 	__forceinline void init_parser()
@@ -1136,7 +1222,7 @@ namespace skin_changer
 
 			static int force_update_count = 0;
 
-			*reinterpret_cast<int*>(uintptr_t(glove) + 0x64) = -1;
+			//*reinterpret_cast<int*>(uintptr_t(glove) + 0x64) = -1;
 
 			auto& paint_kit = glove->fallback_paint_kit();
 
@@ -1174,11 +1260,18 @@ namespace skin_changer
 				if (weapon_indexes.find(replacement_item->model) == weapon_indexes.end())
 					weapon_indexes.emplace(replacement_item->model, HACKS->model_info->get_model_index(replacement_item->model));
 
-				glove->set_model_index(weapon_indexes.at(replacement_item->model));
+				if (const auto def = HACKS->item_schema->getItemDefinitionInterface(item_defenition_index_t{ definition_index })) {
+					glove->set_model_index(HACKS->model_info->get_model_index(def->getWorldDisplayModel()));
+					glove->pre_update(0);
+				}
+
 				const auto networkable = glove->get_networkable_entity();
 
 				using fn = void(__thiscall*)(void*, const int);
 				memory::get_virtual(networkable, 6).cast<fn>()(networkable, 0);
+
+				offsets::equip_wearable.cast<EQUIP_WEARABLE_FN>()(glove, HACKS->local);
+				HACKS->local->body() = 1;
 
 				if (old_glove != glove_index)
 				{
@@ -1186,10 +1279,6 @@ namespace skin_changer
 					old_glove = glove_index;
 				}
 
-				// ghetto fix
-				// it gets 0 item definition index and call force update multiple times
-				// but glove is still applied
-				// idk how to fix it, let's just update it once then
 				if (g_cfg.misc.menu && force_update_count < 1)
 				{
 					++force_update_count;
@@ -1207,10 +1296,10 @@ namespace skin_changer
 		if (!HACKS->local)
 			return;
 
-		mask_changer(stage);
-
 		if (stage == FRAME_NET_UPDATE_POSTDATAUPDATE_END)
 			glove_changer();
+
+		mask_changer(stage);
 
 		if (!HACKS->weapon)
 			return;

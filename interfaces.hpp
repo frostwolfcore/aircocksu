@@ -59,14 +59,14 @@ public:
     int delta_tick;
 
 #ifdef LEGACY
-    PAD(19240); 
-    int old_tickcount; 
+    PAD(19240);
+    int old_tickcount;
     float tick_remainder;
     float frame_time;
     int last_outgoing_command;
     int choked_commands;
-    int last_command_ack; 
-    int last_server_tick; 
+    int last_command_ack;
+    int last_server_tick;
     int command_ack;
 #else
     PAD(0x4);
@@ -327,7 +327,7 @@ public:
         return (c_con_command_base***)((std::uintptr_t)this + 0x34);
     }
 
-    VFUNC(find_convar(const char* name), c_convar*(__thiscall*)(decltype(this), const char*), 16, name);
+    VFUNC(find_convar(const char* name), c_convar* (__thiscall*)(decltype(this), const char*), 16, name);
 };
 
 class c_input
@@ -544,7 +544,7 @@ public:
     virtual weapon_info_t* get_weapon_data(uint32_t item_definition_index) = 0;
 };
 
-class c_engine_trace 
+class c_engine_trace
 {
 public:
     virtual int get_point_contents(const vec3_t& position, int contents_mask = MASK_ALL, c_base_entity** p_entity = nullptr) = 0;
@@ -558,9 +558,9 @@ public:
     void trace_hull(const vec3_t& src, const vec3_t& dst, const vec3_t& mins, const vec3_t& maxs, int mask, c_base_entity* entity, int collision_group, c_game_trace* trace);
 };
 
-using key_values_system_fn = c_key_values_system*(__cdecl*)();
+using key_values_system_fn = c_key_values_system * (__cdecl*)();
 
-class c_key_values_system 
+class c_key_values_system
 {
 public:
     virtual void register_sizeof_key_values(int size) = 0;
@@ -575,7 +575,7 @@ public:
 class c_network_string_table
 {
 public:
-    VFUNC(add_string(bool is_server, const char* value, int length = -1, const void* userdata = nullptr), 
+    VFUNC(add_string(bool is_server, const char* value, int length = -1, const void* userdata = nullptr),
         int(__thiscall*)(void*, bool, const char*, int, const void*), 8, is_server, value, length, userdata);
 };
 
@@ -633,6 +633,31 @@ struct sticker_kit_t
     string_t item_name{};
 };
 
+class econ_item_definition {
+public:
+    VIRTUAL_METHOD(item_defenition_index_t, getWeaponId, 0, (), (this))
+        VIRTUAL_METHOD(const char*, getItemBaseName, 2, (), (this))
+        VIRTUAL_METHOD(const char*, getItemTypeName, 3, (), (this))
+        VIRTUAL_METHOD(const char*, getPlayerDisplayModel, 6, (), (this))
+        VIRTUAL_METHOD(const char*, getWorldDisplayModel, 7, (), (this))
+        VIRTUAL_METHOD(std::uint8_t, getRarity, 12, (), (this))
+
+        int getCapabilities() noexcept
+    {
+        return *reinterpret_cast<int*>(this + 0x148);
+    }
+
+    bool isPaintable() noexcept
+    {
+        return getCapabilities() & 1; // ITEM_CAP_PAINTABLE
+    }
+
+    const char* getDefinitionName() noexcept
+    {
+        return *reinterpret_cast<const char**>(this + 0x1DC);
+    }
+};
+
 class c_item_schema
 {
     PAD(0x28C);
@@ -646,6 +671,7 @@ private:
 public:
     head_t< int, sticker_kit_t* > sticker_kits{};
 
+    VIRTUAL_METHOD(econ_item_definition*, getItemDefinitionInterface, 4, (item_defenition_index_t id), (this, id))
 };
 
 class c_localize
@@ -829,7 +855,7 @@ private:
     int override_type;
 
 public:
-    inline bool is_glow() 
+    inline bool is_glow()
     {
         if (!override_material)
             return false;
@@ -838,7 +864,7 @@ public:
         return std::strstr(override_material->get_name(), dev_glow.c_str());
     }
 
-    bool is_forced_material_override() 
+    bool is_forced_material_override()
     {
         if (!override_material)
             return override_type == 2 || override_type == 4;

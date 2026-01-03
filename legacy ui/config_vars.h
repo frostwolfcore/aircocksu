@@ -504,6 +504,8 @@ struct configs_t
 		int model_ct{};
 		int group_type{};
 
+		bool filter_by_weapon{};
+
 		int model_glove{};
 		int glove_skin{};
 

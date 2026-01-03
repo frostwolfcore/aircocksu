@@ -794,97 +794,6 @@ bool start_fakelag_fix(c_cs_player* player, anims_t* anims)
 	return false;
 }
 
-//void pre_cache_centers(int damage, std::vector<int>& hitboxes, vec3_t& predicted_eye_pos, rage_player_t* rage)
-//{
-//	rage->reset_hitscan();
-//	auto anim = ANIMFIX->get_local_anims();
-//
-//	auto lagcomp = ANIMFIX->get_anims(rage->player->index());
-//	if (!lagcomp || lagcomp->records.empty())
-//		return;
-//
-//	auto get_overall_damage = [&](anim_record_t* record)
-//	{
-//		rage->points_to_scan.clear();
-//		rage->points_to_scan.reserve(MAX_SCANNED_POINTS);
-//
-//		auto predicted_hitbox_points = get_hitbox_points(damage, hitboxes, predicted_eye_pos, predicted_eye_pos, rage, record, true);
-//		if (predicted_hitbox_points.empty())
-//		{
-//			auto hitbox_points = get_hitbox_points(damage, hitboxes, anim->eye_pos, predicted_eye_pos, rage, record, true);
-//
-//			int overall_damage = 0;
-//			for (auto& point : hitbox_points)
-//			{
-//				rage->points_to_scan.emplace_back(point);
-//				overall_damage += point.damage;
-//			}
-//
-//			return overall_damage;
-//		}
-//		else
-//		{
-//			int overall_damage = 0;
-//			for (auto& point : predicted_hitbox_points)
-//			{
-//				rage->points_to_scan.emplace_back(point);
-//				overall_damage += point.damage;
-//			}
-//
-//			return overall_damage;
-//		}
-//	};
-//
-//	rage->restore.store(rage->player);
-//
-//	anim_record_t* best = nullptr;
-//	if (start_fakelag_fix(rage->player, lagcomp))
-//	{
-//		auto record = &lagcomp->records.front();
-//		auto record_dmg = get_overall_damage(record);
-//		best = record;
-//	}
-//	else
-//	{
-//		auto first_find = std::find_if(lagcomp->records.begin(), lagcomp->records.end(), [&](anim_record_t& record) {
-//			return record.valid_lc;
-//			});
-//
-//		anim_record_t* first = nullptr;
-//		if (first_find != lagcomp->records.end())
-//			first = &*first_find;
-//
-//		auto last_find = std::find_if(lagcomp->records.rbegin(), lagcomp->records.rend(), [&](anim_record_t& record) {
-//			return record.valid_lc;
-//			});
-//
-//		anim_record_t* last = nullptr;
-//		if (last_find != lagcomp->records.rend())
-//			last = &*last_find;
-//
-//		if (last)
-//		{
-//			auto last_dmg = get_overall_damage(last);
-//			auto first_dmg = get_overall_damage(first);
-//
-//			if (last_dmg > first_dmg)
-//				best = last;
-//			else
-//				best = first;
-//		}
-//		else
-//			best = first;
-//	}
-//
-//	rage->restore.restore(rage->player);
-//
-//	if (best)
-//	{
-//		rage->start_scans = true;
-//		rage->hitscan_record = best;
-//	}
-//}
-
 void pre_cache_centers(int damage, std::vector<int>& hitboxes, vec3_t& predicted_eye_pos, rage_player_t* rage)
 {
 	rage->reset_hitscan();
@@ -929,49 +838,53 @@ void pre_cache_centers(int damage, std::vector<int>& hitboxes, vec3_t& predicted
 	rage->restore.store(rage->player);
 
 	anim_record_t* best = nullptr;
-
-	auto first_find = std::find_if(lagcomp->records.begin(), lagcomp->records.end(), [&](anim_record_t& record)
-		{
-			return LAGCOMP->is_tick_valid(record.shifting, record.break_lc, record.sim_time);
-		});
-
-	anim_record_t* first = nullptr;
-	if (first_find != lagcomp->records.end())
-		first = &*first_find;
-
-	auto last_find = std::find_if(lagcomp->records.rbegin(), lagcomp->records.rend(), [&](anim_record_t& record)
-		{
-			return LAGCOMP->is_tick_valid(record.shifting, record.break_lc, record.sim_time);
-		});
-
-	anim_record_t* last = nullptr;
-	if (last_find != lagcomp->records.rend())
-		last = &*last_find;
-
-	bool oldest_valid{};
-
-	if (last)
+	if (start_fakelag_fix(rage->player, lagcomp))
 	{
-		if (last && get_overall_damage(last) >= damage)
-		{
-			rage->start_scans = true;
-			rage->hitscan_record = last;
-		}
+		auto record = &lagcomp->records.front();
+		auto record_dmg = get_overall_damage(record);
+		best = record;
+	}
+	else
+	{
+		auto first_find = std::find_if(lagcomp->records.begin(), lagcomp->records.end(), [&](anim_record_t& record) {
+			//return record.valid_lc;
+			return LAGCOMP->is_tick_valid(record.shifting, record.break_lc, record.sim_time);
+			});
+
+		anim_record_t* first = nullptr;
+		if (first_find != lagcomp->records.end())
+			first = &*first_find;
+
+		auto last_find = std::find_if(lagcomp->records.rbegin(), lagcomp->records.rend(), [&](anim_record_t& record) {
+			//return record.valid_lc;
+			return LAGCOMP->is_tick_valid(record.shifting, record.break_lc, record.sim_time);
+			});
+
+		anim_record_t* last = nullptr;
+		if (last_find != lagcomp->records.rend())
+			last = &*last_find;
 
 		if (last)
-			oldest_valid = true;
-	}
-
-	if (!oldest_valid && first)
-	{
-		if (first && get_overall_damage(first) >= damage)
 		{
-			rage->start_scans = true;
-			rage->hitscan_record = first;
+			auto last_dmg = get_overall_damage(last);
+			auto first_dmg = get_overall_damage(first);
+
+			if (last_dmg > first_dmg)
+				best = last;
+			else
+				best = first;
 		}
+		else
+			best = first;
 	}
 
 	rage->restore.restore(rage->player);
+
+	if (best)
+	{
+		rage->start_scans = true;
+		rage->hitscan_record = best;
+	}
 }
 
 void get_result(bool& out, const vec3_t& start, const vec3_t& end, rage_player_t* rage, int hitbox, matrix3x4_t* matrix, anim_record_t* record)
@@ -1432,82 +1345,79 @@ void c_ragebot::knife_bot()
 	knife_point_t best{};
 
 	LISTENER_ENTITY->for_each_player([&](c_cs_player* player)
-	{
-		if (!player->is_alive() || player->dormant() || player->has_gun_game_immunity())
-			return;
-
-		auto anims = ANIMFIX->get_anims(player->index());
-		if (!anims || anims->records.empty())
-			return;
-
-		auto first_find = std::find_if(anims->records.begin(), anims->records.end(), [&](anim_record_t& record) {
-			return record.valid_lc;
-			});
-
-		anim_record_t* first = nullptr;
-		if (first_find != anims->records.end())
-			first = &*first_find;
-
-		restore_record_t backup{};
-		backup.store(player);
-
-		if (!first)
 		{
-			backup.restore(player);
-			return;
-		}
+			if (!player->is_alive() || player->dormant() || player->has_gun_game_immunity())
+				return;
 
-		{
-			{
-				LAGCOMP->set_record(player, first, first->matrix_orig.matrix);
+			auto anims = ANIMFIX->get_anims(player->index());
+			if (!anims || anims->records.empty())
+				return;
 
-				for (auto& a : knife_ang)
+			auto first_find = std::find_if(anims->records.begin(), anims->records.end(), [&](anim_record_t& record)
 				{
-					if (!can_knife(player, first, a, best_stab))
-						continue;
+					return LAGCOMP->is_tick_valid(record.shifting, record.break_lc, record.sim_time);
+				});
 
-					best.point = a;
-					best.record = first;
-					break;
-				}
+			anim_record_t* first = nullptr;
+			if (first_find != anims->records.end())
+				first = &*first_find;
+
+			restore_record_t backup{};
+			backup.store(player);
+
+			if (!first)
+			{
+				backup.restore(player);
+				return;
 			}
 
+			LAGCOMP->set_record(player, first, first->matrix_orig.matrix);
+
+			for (auto& a : knife_ang)
 			{
-				auto last_find = std::find_if(anims->records.rbegin(), anims->records.rend(), [&](anim_record_t& record) {
-					return record.valid_lc;
-					});
+				if (!can_knife(player, first, a, best_stab))
+					continue;
 
-				anim_record_t* last = nullptr;
-				if (last_find != anims->records.rend())
-					last = &*last_find;
-
-				if (!last || last == first)
-				{
-					backup.restore(player);
-					return;
-				}
-
-				LAGCOMP->set_record(player, last, last->matrix_orig.matrix);
-
-				for (auto& a : knife_ang)
-				{
-					if (!can_knife(player, last, a, best_stab))
-						continue;
-
-					best.point = a;
-					best.record = last;
-					break;
-				}
+				best.point = a;
+				best.record = first;
+				break;
 			}
-		}
-		backup.restore(player);
 
-		if (best.record)
-		{
+			auto last_find = std::find_if(anims->records.rbegin(), anims->records.rend(), [&](anim_record_t& record)
+				{
+					return LAGCOMP->is_tick_valid(record.shifting, record.break_lc, record.sim_time);
+				});
+
+			anim_record_t* last = nullptr;
+			if (last_find != anims->records.rend())
+				last = &*last_find;
+
+			if (!last || last == first)
+			{
+				backup.restore(player);
+				return;
+			}
+
+			LAGCOMP->set_record(player, last, last->matrix_orig.matrix);
+
+			for (auto& a : knife_ang)
+			{
+				if (!can_knife(player, last, a, best_stab))
+					continue;
+
+				best.point = a;
+				best.record = last;
+				break;
+			}
+
 			backup.restore(player);
-			return;
-		}
-	});
+
+			if (best.record)
+			{
+				backup.restore(player);
+				return;
+			}
+		});
 
 	if (supress_doubletap_choke && best.record)
 	{

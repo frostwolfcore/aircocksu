@@ -168,6 +168,7 @@ namespace resolver
 			info.mode = XOR("air");
 		}
 #else
+
 		prepare_jitter(player, info, current);
 		auto& jitter = info.jitter;
 		if (jitter.is_jitter)
