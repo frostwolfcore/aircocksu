@@ -258,6 +258,9 @@ static INLINE void update_sides(bool should_update, c_cs_player* player, anims_t
 		// so we should set latest data as soon as possible
 		state->primary_cycle = new_record->layers[ANIMATION_LAYER_MOVEMENT_MOVE].cycle;
 		state->move_weight = new_record->layers[ANIMATION_LAYER_MOVEMENT_MOVE].weight;
+		state->strafe_change_cycle = new_record->layers[ANIMATION_LAYER_MOVEMENT_STRAFECHANGE].cycle;
+		state->strafe_change_weight = new_record->layers[ANIMATION_LAYER_MOVEMENT_STRAFECHANGE].weight;
+		state->strafe_sequence = new_record->layers[ANIMATION_LAYER_MOVEMENT_STRAFECHANGE].sequence;
 
 		// fixes goalfeetyaw on spawn
 		state->last_update_time = (new_record->sim_time - HACKS->global_vars->interval_per_tick);
@@ -283,6 +286,9 @@ static INLINE void update_sides(bool should_update, c_cs_player* player, anims_t
 	{
 		state->primary_cycle = last_record->layers[ANIMATION_LAYER_MOVEMENT_MOVE].cycle;
 		state->move_weight = last_record->layers[ANIMATION_LAYER_MOVEMENT_MOVE].weight;
+		state->strafe_change_cycle = last_record->layers[ANIMATION_LAYER_MOVEMENT_STRAFECHANGE].cycle;
+		state->strafe_change_weight = last_record->layers[ANIMATION_LAYER_MOVEMENT_STRAFECHANGE].weight;
+		state->strafe_sequence = last_record->layers[ANIMATION_LAYER_MOVEMENT_STRAFECHANGE].sequence;
 	}
 
 	if (should_update)
@@ -658,7 +664,7 @@ void thread_collect_info(c_cs_player* player)
 				anim->last_valid_time = new_record.sim_time + std::abs(last_record->sim_time - new_record.sim_time) + TICKS_TO_TIME(1);
 				new_record.shifting = true;
 			}
-			else 
+			else
 			{
 				if (anim->last_valid_time > new_record.sim_time)
 					new_record.shifting = true;
@@ -980,6 +986,7 @@ void c_animation_fix::update_local()
 	auto real_layers = HACKS->local->animlayers();
 	real_layers[ANIMATION_LAYER_MOVEMENT_JUMP_OR_FALL] = local_anims.layers[ANIMATION_LAYER_MOVEMENT_JUMP_OR_FALL];
 	real_layers[ANIMATION_LAYER_MOVEMENT_LAND_OR_CLIMB] = local_anims.layers[ANIMATION_LAYER_MOVEMENT_LAND_OR_CLIMB];
+	real_layers[ANIMATION_LAYER_LEAN] = local_anims.layers[ANIMATION_LAYER_LEAN];
 
 	//printf("%f \n", HACKS->cmd->viewangles.x);
 

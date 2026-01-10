@@ -38,6 +38,64 @@ namespace resolver
 		jitter.is_jitter = jitter.jitter_ticks > jitter.static_ticks;
 	}
 
+	inline void prepare_freestand(c_cs_player* player, resolver_info_t& resolver_info)
+	{
+		constexpr float RANGE = 32.f;
+		auto& jitter = resolver_info.jitter;
+
+		auto layers = player->animlayers();
+		auto weight = layers[6].weight;
+
+		vec3_t src = player->get_eye_position();
+		vec3_t forward, right, up;
+		math::angle_vectors(player->eye_angles(), &forward, &right, &up);
+
+		vec3_t left_end = src + (right * -RANGE);
+		vec3_t right_end = src + (right * RANGE);
+
+		float left_fraction = 0.f, right_fraction = 0.f;
+
+		for (float i = 0.f; i < 1.f; i += 0.1f)
+		{
+			vec3_t left_point = src + (left_end - src) * i;
+			vec3_t right_point = src + (right_end - src) * i;
+
+			c_game_trace left_trace, right_trace;
+			ray_t left_ray, right_ray;
+
+			left_ray.init(left_point, left_point + forward * 100.f);
+			right_ray.init(right_point, right_point + forward * 100.f);
+
+			HACKS->engine_trace->trace_ray(left_ray, MASK_SHOT_HULL | CONTENTS_HITBOX, nullptr, &left_trace);
+			HACKS->engine_trace->trace_ray(right_ray, MASK_SHOT_HULL | CONTENTS_HITBOX, nullptr, &right_trace);
+
+			left_fraction += left_trace.fraction;
+			right_fraction += right_trace.fraction;
+		}
+
+		if (left_fraction > right_fraction)
+			resolver_info.freestanding.side = 1;
+		else if (right_fraction > left_fraction)
+			resolver_info.freestanding.side = -1;
+		else
+			resolver_info.freestanding.side = 0;
+
+
+		resolver_info.freestanding.updated = true;
+		resolver_info.freestanding.update_time = HACKS->global_vars->curtime;
+
+
+
+		if (jitter.is_jitter || weight > 0.75f)
+		{
+			if (resolver_info.freestanding.updated)
+				resolver_info.freestanding.reset();
+
+			return;
+		}
+
+	}
+
 #ifdef LEGACY
 	int lby_update(c_cs_player* player, anim_record_t* record, resolver_info_t* data)
 	{
@@ -96,6 +154,7 @@ namespace resolver
 
 		if (info.is_legit())
 		{
+			info.side = 0;
 			info.resolved = false;
 			info.mode = XOR("no fake");
 			return;
@@ -169,7 +228,10 @@ namespace resolver
 		}
 #else
 		prepare_jitter(player, info, current);
+		prepare_freestand(player, info);
 		auto& jitter = info.jitter;
+		auto& freestand = info.freestanding;
+
 		if (jitter.is_jitter)
 		{
 			auto& misses = RAGEBOT->missed_shots[player->index()];
@@ -197,18 +259,12 @@ namespace resolver
 		}
 		else
 		{
-			auto& misses = RAGEBOT->missed_shots[player->index()];
-			if (misses > 0)
-			{
-				switch (misses % 3)
-				{
-				case 1: info.side = -1; break;
-                case 2: info.side = 1; break;
-                case 0: info.side = 0; break;
-				}
 
+			if (freestand.updated)
+			{
+				info.side = freestand.side;
+				info.mode = XOR("freestanding");
 				info.resolved = true;
-				info.mode = XOR("brute");
 			}
 			else
 			{
