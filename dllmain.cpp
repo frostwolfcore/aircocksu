@@ -3,7 +3,7 @@
 #if ALPHA || BETA
 HMODULE cheat_module{};
 
-// credits to @panzerfaust
+// credits to @panzerfaust and mister brest
 LONG __stdcall exception_handler(EXCEPTION_POINTERS* ex) {
 	// continue execution on useless exceptions.
 	if (ex->ExceptionRecord->ExceptionCode <= 0x80000000)
@@ -60,8 +60,8 @@ ecx: %08X
 edx: %08X
 -------------
 
-Press CTRL+C and send info to forum.)#"), ex->ExceptionRecord->ExceptionCode, ex->ExceptionRecord->ExceptionAddress,
-mod == (HMODULE)cheat_module ? CXOR("AIRFLOW") : module_name, bytes,
+Press CTRL+C and open an Issue or let cacamelon know)#"), ex->ExceptionRecord->ExceptionCode, ex->ExceptionRecord->ExceptionAddress,
+mod == (HMODULE)cheat_module ? CXOR("AIRMISS.US") : module_name, bytes,
 ex->ContextRecord->Eax, ex->ContextRecord->Ebx, ex->ContextRecord->Ecx, ex->ContextRecord->Edx);
 
 	// display messagebox.
