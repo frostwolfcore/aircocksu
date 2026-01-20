@@ -73,7 +73,7 @@ bool can_hit_hitbox(const vec3_t& start, const vec3_t& end, rage_player_t* rage,
 	math::vector_transform(studio_box->min, matrix[studio_box->bone], min);
 	math::vector_transform(studio_box->max, matrix[studio_box->bone], max);
 
-	if (studio_box->radius != -1.f)
+	/*if (studio_box->radius != -1.f)
 		return math::segment_to_segment(start, end, min, max) < studio_box->radius;
 
 	c_game_trace trace{};
@@ -86,6 +86,25 @@ bool can_hit_hitbox(const vec3_t& start, const vec3_t& end, rage_player_t* rage,
 			if (valid_hitgroup(trace.hitgroup))
 				return true;
 		}
+	}*/
+
+	if (studio_box->radius > 0.f)
+	{
+		vec3_t center = (min + max) * 0.5f;
+		vec3_t direction = end - start;
+		float distance = direction.normalized_float();
+
+		vec3_t point_on_ray = start + direction * std::clamp(direction.dot(center - start), 0.f, distance);
+		return (point_on_ray - center).length() <= studio_box->radius;
+	}
+	else
+	{
+		c_game_trace trace;
+		ray_t ray(start, end);
+		HACKS->engine_trace->clip_ray_to_entity(ray, MASK_SHOT_HULL | CONTENTS_HITBOX, rage->player, &trace);
+
+		if (trace.entity == rage->player && valid_hitgroup(trace.hitgroup))
+			return true;
 	}
 
 	return false;
@@ -963,6 +982,8 @@ void collect_damage_from_multipoints(int damage, vec3_t& predicted_eye_pos, rage
 	if (predicted)
 		HACKS->local->set_abs_origin({ predicted_eye_pos.x, predicted_eye_pos.y, backup_origin.z });
 
+	//const float required_accuracy = RAGEBOT->rage_config.hitchance * 0.01f;
+
 	for (auto& multipoint : multipoints)
 	{
 		if (multipoint.second)
@@ -993,6 +1014,11 @@ void collect_damage_from_multipoints(int damage, vec3_t& predicted_eye_pos, rage
 		point.damage = bullet.damage;
 		point.aim_point = multipoint.first;
 		point.predicted_eye_pos = points.predicted_eye_pos;
+
+		/*point.accuracy = get_point_accuracy(rage, start_eye_pos, point, matrix_to_aim, record);
+
+		if (point.accuracy < required_accuracy)
+			continue;*/
 
 #ifndef LEGACY
 		point.safety = [&]()
